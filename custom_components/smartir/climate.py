@@ -123,14 +123,14 @@ class SmartIRClimate(ClimateEntity, RestoreEntity):
         self._operation_modes = [HVACMode.OFF] + valid_hvac_modes
         self._fan_modes = device_data['fanModes']
         self._swing_modes = device_data.get('swingModes')
-        self._horizontal_swing_modes = device_data.get('horizontalSwingModes')
+        self._swing_horizontal_modes = device_data.get('horizontalSwingModes')
         self._commands = device_data['commands']
 
         self._target_temperature = self._min_temperature
         self._hvac_mode = HVACMode.OFF
         self._current_fan_mode = self._fan_modes[0]
         self._current_swing_mode = None
-        self._current_horizontal_swing_mode = None
+        self._current_swing_horizontal_mode = None
         self._last_on_operation = None
 
         self._current_temperature = None
@@ -148,9 +148,9 @@ class SmartIRClimate(ClimateEntity, RestoreEntity):
             self._current_swing_mode = self._swing_modes[0]
             self._support_swing = True
 
-        if self._horizontal_swing_modes:
+        if self._swing_horizontal_modes:
             self._support_flags = self._support_flags | ClimateEntityFeature.SWING_HORIZONTAL_MODE
-            self._current_horizontal_swing_mode = self._horizontal_swing_modes[0]
+            self._current_swing_horizontal_mode = self._swing_horizontal_modes[0]
             self._support_horizontal_swing = True
 
         self._temp_lock = asyncio.Lock()
@@ -175,7 +175,7 @@ class SmartIRClimate(ClimateEntity, RestoreEntity):
             self._hvac_mode = last_state.state
             self._current_fan_mode = last_state.attributes['fan_mode']
             self._current_swing_mode = last_state.attributes.get('swing_mode')
-            self._current_horizontal_swing_mode = last_state.attributes.get('horizontal_swing_mode')
+            self._current_swing_horizontal_mode = last_state.attributes.get('swing_horizontal_mode')
             self._target_temperature = last_state.attributes['temperature']
 
             if 'last_on_operation' in last_state.attributes:
@@ -279,14 +279,14 @@ class SmartIRClimate(ClimateEntity, RestoreEntity):
         return self._current_swing_mode
 
     @property
-    def horizontal_swing_modes(self):
+    def swing_horizontal_modes(self):
         """Return the horizontal swing modes currently supported for this device."""
-        return self._horizontal_swing_modes
+        return self._swing_horizontal_modes
 
     @property
-    def horizontal_swing_mode(self):
+    def swing_horizontal_mode(self):
         """Return the current horizontal swing mode."""
-        return self._current_horizontal_swing_mode
+        return self._current_swing_horizontal_mode
 
     @property
     def current_temperature(self):
@@ -367,9 +367,9 @@ class SmartIRClimate(ClimateEntity, RestoreEntity):
             await self.send_command()
         self.async_write_ha_state()
 
-    async def async_set_horizontal_swing_mode(self, horizontal_swing_mode):
+    async def async_set_swing_horizontal_mode(self, swing_horizontal_mode):
         """Set horizontal swing mode."""
-        self._current_horizontal_swing_mode = horizontal_swing_mode
+        self._current_swing_horizontal_mode = swing_horizontal_mode
 
         if not self._hvac_mode.lower() == HVACMode.OFF:
             await self.send_command()
@@ -393,7 +393,7 @@ class SmartIRClimate(ClimateEntity, RestoreEntity):
                 operation_mode = self._hvac_mode
                 fan_mode = self._current_fan_mode
                 swing_mode = self._current_swing_mode
-                horizontal_swing_mode = self._current_horizontal_swing_mode
+                swing_horizontal_mode = self._current_swing_horizontal_mode
                 target_temperature = '{0:g}'.format(self._target_temperature)
 
                 if operation_mode.lower() == HVACMode.OFF:
@@ -407,7 +407,7 @@ class SmartIRClimate(ClimateEntity, RestoreEntity):
                 if self._support_swing == True:
                     if self._support_horizontal_swing == True:
                         await self._controller.send(
-                            self._commands[operation_mode][fan_mode][swing_mode][horizontal_swing_mode][target_temperature])
+                            self._commands[operation_mode][fan_mode][swing_mode][swing_horizontal_mode][target_temperature])
                     else:
                         await self._controller.send(
                             self._commands[operation_mode][fan_mode][swing_mode][target_temperature])
